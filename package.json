@@ -1,0 +1,57 @@
+{
+  "name": "ts-library-template",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:clear": "rimraf dist",
+    "build:esm": "tsc -p ./tsconfig.build-esm.json",
+    "build:lib": "tsc -p ./tsconfig.build.json",
+    "build": "npm run build:clear && npm run build:esm && npm run build:lib",
+    "check-type": "tsc --noEmit",
+    "test": "jest -c ./jest.config.js",
+    "example-scripts": "ts-node --project tsconfig.scripts.json scripts/example.ts"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": "eslint --cache --fix",
+    "*.{js,json}": "prettier --write"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/50ra4/ts-library-template.git"
+  },
+  "author": "50ra4",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/50ra4/ts-library-template/issues"
+  },
+  "homepage": "https://github.com/50ra4/ts-library-template#readme",
+  "dependencies": {
+    "date-fns": "2.16.1",
+    "fp-ts": "2.9.5"
+  },
+  "devDependencies": {
+    "@types/jest": "26.0.20",
+    "@types/node": "14.14.31",
+    "@typescript-eslint/eslint-plugin": "4.15.0",
+    "@typescript-eslint/parser": "4.15.0",
+    "commander": "7.1.0",
+    "dotenv": "8.2.0",
+    "eslint": "7.20.0",
+    "eslint-config-prettier": "7.2.0",
+    "eslint-plugin-prettier": "3.3.1",
+    "husky": "4.3.6",
+    "jest": "26.6.3",
+    "lint-staged": "10.5.3",
+    "prettier": "2.2.1",
+    "rimraf": "3.0.2",
+    "ts-jest": "26.5.1",
+    "ts-node": "9.1.1",
+    "typescript": "4.2.2"
+  }
+}
