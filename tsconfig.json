@@ -1,15 +1,16 @@
 {
   "compilerOptions": {
-    "lib": ["esnext"],
+    "lib": ["esnext", "DOM"],
     "experimentalDecorators": true,
-    "typeRoots": ["node_modules/@types", "src/types"],
+    "typeRoots": ["node_modules/@types"],
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Node",
     "sourceMap": false,
     "declaration": true,
-    "strict": true
+    "strict": true,
+    "noUncheckedIndexedAccess": true
   },
   "include": ["./src", "./test", "./scripts"],
-  "exclude": ["node_modules"],
+  "exclude": ["node_modules"]
 }
