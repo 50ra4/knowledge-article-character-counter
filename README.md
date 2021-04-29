@@ -23,7 +23,17 @@ $ git clone $CREATED_NEW_REPOSITORY_URL
 $ npm install
 ```
 
-3. count the number of characters in target article
+3. create `.env` file with reference to [.env.sample](./.env.sample)
+
+e.g.)
+```
+BASE_URL = https://knowledge.exemple.com // url
+ID = s.igarashi@exemple.com // login id
+PASSWORD = 123456 // login password
+IS_HEADLESS = 1 // set it to 0 if you want to display the browser and see the execution.
+```
+
+4. count the number of characters in target article.
 
 ```bash
 $ npm run count-article-character -- -n $TARGET_NUMBER_OR_ARTICLE
