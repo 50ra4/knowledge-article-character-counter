@@ -1,5 +1,4 @@
 import { Browser, launch, Page } from 'puppeteer';
-import { join } from 'path';
 import { Command } from 'commander';
 import { partial } from 'lodash';
 
@@ -8,7 +7,7 @@ import { pipe, flow } from 'fp-ts/lib/function';
 import { fold, none, Option, some } from 'fp-ts/lib/Option';
 import { Task, chain, fromIO, of } from 'fp-ts/lib/Task';
 
-import { BASE_URL, IS_HEADLESS, LOGIN_ID, LOGIN_PASSWORD, SLOW_MOTION_MS } from '../src/constants';
+import { IS_HEADLESS, LOGIN_ID, LOGIN_PAGE_URL, LOGIN_PASSWORD, SLOW_MOTION_MS, VIEW_PAGE_URL } from '../src/constants';
 import { countArticleCharacters } from '../src/browser';
 import { goToUrl, getPageFromBrowser, loginKnowledge, extractArticleContentsFromPage } from '../src/tasks';
 
@@ -53,12 +52,11 @@ const closeBrowser: () => <P extends Record<string, unknown>>(
 /**
  * go to ${BASE_URL}/list
  */
-const goToLoginPage = () => partial(goToUrl, join(BASE_URL, 'list'));
+const goToLoginPage = () => partial(goToUrl, LOGIN_PAGE_URL);
 /**
  * go to ${BASE_URL}/view/${numberOfArticle}
  */
-const goToArticlePage = (numberOfArticle: number) =>
-  partial(goToUrl, join(BASE_URL, 'view', numberOfArticle.toString()));
+const goToArticlePage = (numberOfArticle: number) => partial(goToUrl, `${VIEW_PAGE_URL}/${numberOfArticle}`);
 /**
  * login
  */
