@@ -11,8 +11,7 @@
     "check-type": "tsc --noEmit",
     "test": "jest -c ./jest.config.js",
     "start": "npm run count-article-character",
-    "count-article-character": "ts-node --project tsconfig.scripts.json scripts/countCharacters.ts",
-    "example-scripts": "ts-node --project tsconfig.scripts.json scripts/example.ts"
+    "count-article-character": "ts-node --project tsconfig.scripts.json scripts/countCharacters.ts"
   },
   "husky": {
     "hooks": {
