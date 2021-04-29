@@ -1,6 +1,6 @@
 import { Page, ElementHandle, Browser } from 'puppeteer';
 import { Task } from 'fp-ts/lib/Task';
-import { EXCLUDED_TAG_NAMES } from './constants';
+import { ArticleContent, TagName } from './types';
 
 export const getPage = (browser: Browser): Task<Page> => async () => {
   const pages = await browser.pages();
@@ -36,11 +36,7 @@ export const loginKnowledge = ({ id, password }: { id: string; password: string 
 export const articleContentHandler = (): HTMLElement[] =>
   Array.from(document.querySelector('#content')?.children ?? []) as HTMLElement[];
 
-export type HTMLContent = {
-  tagName: string;
-  innerText: string;
-};
-export const getArticleContents = (articlePage: Page): Task<HTMLContent[]> => async () => {
+export const getArticleContents = (articlePage: Page): Task<ArticleContent[]> => async () => {
   const contentHandle = await articlePage.evaluateHandle(articleContentHandler);
   const contentChildrenHandlers = Array.from(await contentHandle.getProperties())
     .map(([, property]) => property.asElement())
@@ -49,16 +45,17 @@ export const getArticleContents = (articlePage: Page): Task<HTMLContent[]> => as
   return await Promise.all(
     contentChildrenHandlers.map((handler) =>
       handler.evaluate((elm: HTMLElement) => ({
-        tagName: elm.tagName.toUpperCase(),
+        tagName: elm.tagName.toLocaleLowerCase() as TagName,
         innerText: elm.innerText,
       })),
     ),
   );
 };
 
-export const shouldIncludeTagName = (tagName: string): boolean => !EXCLUDED_TAG_NAMES.includes(tagName);
+const EXCLUDED_TAG_NAMES: ReadonlyArray<TagName> = ['pre'];
+export const shouldIncludeTagName = (tagName: TagName): boolean => !EXCLUDED_TAG_NAMES.includes(tagName);
 
-export const countArticleCharacters = (contents: HTMLContent[]): number =>
+export const countArticleCharacters = (contents: ArticleContent[]): number =>
   contents
     .filter(({ tagName }) => shouldIncludeTagName(tagName))
     .map(({ innerText }) => innerText)
