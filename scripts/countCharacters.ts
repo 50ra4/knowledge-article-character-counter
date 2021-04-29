@@ -1,4 +1,3 @@
-import { Browser, launch, Page } from 'puppeteer';
 import { Command } from 'commander';
 import { partial } from 'lodash';
 
@@ -15,6 +14,8 @@ import {
   loginKnowledge,
   extractArticleContentsFromPage,
   setViewPortToPage,
+  launchBrowser,
+  closeBrowser,
 } from '../src/tasks';
 
 const getOptions = () =>
@@ -45,14 +46,9 @@ const setViewPort = () =>
     },
     IS_HEADLESS,
   );
-const launchBrowser: () => Task<Browser> = () => () => launch({ headless: IS_HEADLESS, slowMo: SLOW_MOTION_MS });
-const closeBrowser: () => <P extends Record<string, unknown>>(
-  params: P & { browser: Browser },
-) => Task<Omit<typeof params, 'browser'>> = () => (params) => async () => {
-  const { browser, ...rest } = params;
-  await browser.close();
-  return rest;
-};
+
+const launch = () => launchBrowser({ headless: IS_HEADLESS, slowMo: SLOW_MOTION_MS });
+const shutdown = () => closeBrowser;
 
 /**
  * go to ${BASE_URL}/list
@@ -71,7 +67,7 @@ const extractArticleContents = () => extractArticleContentsFromPage;
 
 const getArticleContents = (numberOfArticle: number) =>
   pipe(
-    launchBrowser(),
+    launch(),
     chain((browser) =>
       pipe(
         getPageFromBrowser(browser),
@@ -83,7 +79,7 @@ const getArticleContents = (numberOfArticle: number) =>
         chain((contents) => of({ browser, numberOfArticle, contents })),
       ),
     ),
-    chain(closeBrowser()),
+    chain(shutdown()),
   );
 
 const main = pipe(

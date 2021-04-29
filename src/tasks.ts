@@ -1,8 +1,12 @@
-import { Page, ElementHandle, Browser, Viewport } from 'puppeteer';
+import { Page, ElementHandle, Browser, Viewport, launch } from 'puppeteer';
 import { Task } from 'fp-ts/lib/Task';
 
 import { ArticleContent, TagName } from './types';
 import { articleContentHandler } from './browser';
+
+export const _launchBrowser = async (...params: Parameters<typeof launch>): Promise<Browser> => {
+  return await launch(...params);
+};
 
 export const _getPageFromBrowser = async (browser: Browser): Promise<Page> => {
   const pages = await browser.pages();
@@ -64,6 +68,14 @@ export const _setViewPortToPage = async (viewPort: Viewport, isHeadless: boolean
   return page;
 };
 
+export const _closeBrowser = async <P extends Record<string, unknown>>(
+  params: P & { browser: Browser },
+): Promise<Omit<typeof params, 'browser'>> => {
+  const { browser, ...rest } = params;
+  await browser.close();
+  return rest;
+};
+
 export const toTask = <P extends unknown[], R>(asyncFn: (...args: P) => Promise<R>): ((...args: P) => Task<R>) => (
   ...args
 ) => () => asyncFn(...args);
@@ -73,3 +85,5 @@ export const goToUrl = toTask(_goToUrl);
 export const loginKnowledge = toTask(_loginKnowledge);
 export const extractArticleContentsFromPage = toTask(_extractArticleContentsFromPage);
 export const setViewPortToPage = toTask(_setViewPortToPage);
+export const launchBrowser = toTask(_launchBrowser);
+export const closeBrowser = toTask(_closeBrowser);
