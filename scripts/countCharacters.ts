@@ -83,15 +83,13 @@ const getArticleContents = () => (numberOfArticle: number) =>
     launch(),
     TaskEither.chain((browser) =>
       F.pipe(
-        F.pipe(
-          getPageFromBrowser(browser),
-          TaskEither.chain(setViewPort()),
-          TaskEither.chain(goToLoginPage()),
-          TaskEither.chain(login()),
-          TaskEither.chain(goToArticlePage(numberOfArticle)),
-          TaskEither.chain(extractArticleContents()),
-          TaskEither.chain((contents) => TaskEither.of({ numberOfArticle, contents })),
-        ),
+        getPageFromBrowser(browser),
+        TaskEither.chain(setViewPort()),
+        TaskEither.chain(goToLoginPage()),
+        TaskEither.chain(login()),
+        TaskEither.chain(goToArticlePage(numberOfArticle)),
+        TaskEither.chain(extractArticleContents()),
+        TaskEither.chain((contents) => TaskEither.of({ numberOfArticle, contents })),
         Task.chain(shutdown(browser)),
       ),
     ),
