@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { partial } from 'lodash';
+import { Browser } from 'puppeteer';
 
 import { log } from 'fp-ts/lib/Console';
 import * as F from 'fp-ts/lib/function';
@@ -50,11 +51,17 @@ const parseNumber = (s: string): Either.Either<Error, number> => {
   return Either.right(i);
 };
 
-const parseArticleNumber = F.flow(parseNumber, TaskEither.fromEither);
+const parseArticleNumber = () => F.flow(parseNumber, TaskEither.fromEither);
 const setViewPort = F.pipe(partial(setViewPortToPage, DEFAULT_VIEW_PORT, IS_HEADLESS), IO.of);
 
 const launch = () => launchBrowser({ headless: IS_HEADLESS, slowMo: SLOW_MOTION_MS });
-const shutdown = () => closeBrowser;
+const shutdown: (browser: Browser) => <T>(result: Either.Either<Error, T>) => TaskEither.TaskEither<Error, T> = (
+  browser,
+) => (result) =>
+  F.pipe(
+    closeBrowser(browser),
+    TaskEither.chain(() => TaskEither.fromEither(result)),
+  );
 
 /**
  * go to ${BASE_URL}/list
@@ -76,21 +83,23 @@ const getArticleContents = () => (numberOfArticle: number) =>
     launch(),
     TaskEither.chain((browser) =>
       F.pipe(
-        getPageFromBrowser(browser),
-        TaskEither.chain(setViewPort()),
-        TaskEither.chain(goToLoginPage()),
-        TaskEither.chain(login()),
-        TaskEither.chain(goToArticlePage(numberOfArticle)),
-        TaskEither.chain(extractArticleContents()),
-        TaskEither.chain((contents) => TaskEither.of({ browser, numberOfArticle, contents })),
+        F.pipe(
+          getPageFromBrowser(browser),
+          TaskEither.chain(setViewPort()),
+          TaskEither.chain(goToLoginPage()),
+          TaskEither.chain(login()),
+          TaskEither.chain(goToArticlePage(numberOfArticle)),
+          TaskEither.chain(extractArticleContents()),
+          TaskEither.chain((contents) => TaskEither.of({ numberOfArticle, contents })),
+        ),
+        Task.chain(shutdown(browser)),
       ),
     ),
-    TaskEither.chain(shutdown()),
   );
 
 const main = F.pipe(
   getArticleNumber(),
-  parseArticleNumber,
+  parseArticleNumber(),
   TaskEither.chain(getArticleContents()),
   TaskEither.chain(({ contents, numberOfArticle }) => {
     const length = countArticleCharacters(contents);

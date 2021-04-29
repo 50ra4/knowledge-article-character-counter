@@ -68,12 +68,8 @@ export const _setViewPortToPage = async (viewPort: Viewport, isHeadless: boolean
   return page;
 };
 
-export const _closeBrowser = async <P extends Record<string, unknown>>(
-  params: P & { browser: Browser },
-): Promise<Omit<typeof params, 'browser'>> => {
-  const { browser, ...rest } = params;
+export const _closeBrowser = async (browser: Browser): Promise<void> => {
   await browser.close();
-  return rest;
 };
 
 export const toTaskEither = <P extends unknown[], R>(
