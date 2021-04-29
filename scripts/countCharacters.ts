@@ -9,7 +9,13 @@ import { Task, chain, fromIO, of } from 'fp-ts/lib/Task';
 
 import { IS_HEADLESS, LOGIN_ID, LOGIN_PAGE_URL, LOGIN_PASSWORD, SLOW_MOTION_MS, VIEW_PAGE_URL } from '../src/constants';
 import { countArticleCharacters } from '../src/browser';
-import { goToUrl, getPageFromBrowser, loginKnowledge, extractArticleContentsFromPage } from '../src/tasks';
+import {
+  goToUrl,
+  getPageFromBrowser,
+  loginKnowledge,
+  extractArticleContentsFromPage,
+  setViewPortToPage,
+} from '../src/tasks';
 
 const getOptions = () =>
   new Command()
@@ -30,16 +36,15 @@ const parse = (s: string): Option<number> => {
   return isNaN(i) || i % 1 !== 0 ? none : some(i);
 };
 
-const setViewPort: () => (page: Page) => Task<Page> = () => (page) => async () => {
-  if (!IS_HEADLESS) {
-    await page.setViewport({
+const setViewPort = () =>
+  partial(
+    setViewPortToPage,
+    {
       width: 1280,
       height: 800,
-    });
-  }
-  return page;
-};
-
+    },
+    IS_HEADLESS,
+  );
 const launchBrowser: () => Task<Browser> = () => () => launch({ headless: IS_HEADLESS, slowMo: SLOW_MOTION_MS });
 const closeBrowser: () => <P extends Record<string, unknown>>(
   params: P & { browser: Browser },

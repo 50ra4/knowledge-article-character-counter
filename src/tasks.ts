@@ -1,4 +1,4 @@
-import { Page, ElementHandle, Browser } from 'puppeteer';
+import { Page, ElementHandle, Browser, Viewport } from 'puppeteer';
 import { Task } from 'fp-ts/lib/Task';
 
 import { ArticleContent, TagName } from './types';
@@ -57,6 +57,13 @@ export const _extractArticleContentsFromPage = async (articlePage: Page): Promis
   );
 };
 
+export const _setViewPortToPage = async (viewPort: Viewport, isHeadless: boolean, page: Page) => {
+  if (!isHeadless) {
+    await page.setViewport(viewPort);
+  }
+  return page;
+};
+
 export const toTask = <P extends unknown[], R>(asyncFn: (...args: P) => Promise<R>): ((...args: P) => Task<R>) => (
   ...args
 ) => () => asyncFn(...args);
@@ -65,3 +72,4 @@ export const getPageFromBrowser = toTask(_getPageFromBrowser);
 export const goToUrl = toTask(_goToUrl);
 export const loginKnowledge = toTask(_loginKnowledge);
 export const extractArticleContentsFromPage = toTask(_extractArticleContentsFromPage);
+export const setViewPortToPage = toTask(_setViewPortToPage);
