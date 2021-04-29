@@ -12,10 +12,12 @@ export const _getPageFromBrowser = async (browser: Browser): Promise<Page> => {
 };
 
 export const _goToUrl = async (url: string, page: Page): Promise<Page> => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const response = await page.goto(url, { waitUntil: 'domcontentloaded' });
-  if (response.status() !== 200) {
-    throw new Error(`goto ${url} failed`);
-  }
+  // NOTE: Because 401 will always be returned first
+  // if (response.status() !== 200) {
+  //   throw new Error(`goto ${url} failed`);
+  // }
   return page;
 };
 
