@@ -1,23 +1,33 @@
-import { launch, Page } from 'puppeteer';
-import { join } from 'path';
 import { Command } from 'commander';
+import { partial } from 'lodash';
+import { Browser } from 'puppeteer';
 
 import { log } from 'fp-ts/lib/Console';
-import { pipe, flow } from 'fp-ts/lib/function';
-import { fold, none, Option, some } from 'fp-ts/lib/Option';
-import { Task, chain, fromIO, of } from 'fp-ts/lib/Task';
+import * as F from 'fp-ts/lib/function';
+import * as IO from 'fp-ts/lib/IO';
+import * as Task from 'fp-ts/lib/Task';
+import * as Either from 'fp-ts/lib/Either';
+import * as TaskEither from 'fp-ts/lib/TaskEither';
 
 import {
+  DEFAULT_VIEW_PORT,
   IS_HEADLESS,
   LOGIN_ID,
+  LOGIN_PAGE_URL,
   LOGIN_PASSWORD,
-  BASE_URL,
-  getPage,
+  SLOW_MOTION_MS,
+  VIEW_PAGE_URL,
+} from '../src/constants';
+import { countArticleCharacters } from '../src/browser';
+import {
   goToUrl,
+  getPageFromBrowser,
   loginKnowledge,
-  getArticleContents,
-  countArticleCharacters,
-} from '../src';
+  extractArticleContentsFromPage,
+  setViewPortToPage,
+  launchBrowser,
+  closeBrowser,
+} from '../src/tasks';
 
 const getOptions = () =>
   new Command()
@@ -31,62 +41,70 @@ const getOptions = () =>
 const getArticleNumber = (): string => getOptions()['number'];
 
 // write to standard output
-const putStrLn: (s: string) => Task<void> = flow(log, fromIO);
+const putStrLn: (s: string) => Task.Task<void> = F.flow(log, Task.fromIO);
 
-const parse = (s: string): Option<string> => {
+const parseNumber = (s: string): Either.Either<Error, number> => {
   const i = +s;
-  return isNaN(i) || i % 1 !== 0 ? none : some(s);
+  if (isNaN(i) || i % 1 !== 0) {
+    return Either.left(new Error('You should set an integer in the articleNumber option.'));
+  }
+  return Either.right(i);
 };
 
-const setViewPort = (page: Page): Task<Page> => async () => {
-  if (!IS_HEADLESS) {
-    await page.setViewport({
-      width: 1280,
-      height: 800,
-    });
-  }
-  return page;
-};
+const parseArticleNumber = () => F.flow(parseNumber, TaskEither.fromEither);
+const setViewPort = F.pipe(partial(setViewPortToPage, DEFAULT_VIEW_PORT, IS_HEADLESS), IO.of);
+
+const launch = () => launchBrowser({ headless: IS_HEADLESS, slowMo: SLOW_MOTION_MS });
+const shutdown: (browser: Browser) => <T>(result: Either.Either<Error, T>) => TaskEither.TaskEither<Error, T> = (
+  browser,
+) => (result) =>
+  F.pipe(
+    closeBrowser(browser),
+    TaskEither.chain(() => TaskEither.fromEither(result)),
+  );
 
 /**
  * go to ${BASE_URL}/list
  */
-const goToLoginPage = goToUrl(join(BASE_URL, 'list'));
+const goToLoginPage = () => partial(goToUrl, LOGIN_PAGE_URL);
 /**
  * go to ${BASE_URL}/view/${numberOfArticle}
  */
-const goToArticlePage = (numberOfArticle: string) => goToUrl(join(BASE_URL, 'view', numberOfArticle));
-const countCharacters = flow(countArticleCharacters, of);
+const goToArticlePage = (numberOfArticle: number) => partial(goToUrl, `${VIEW_PAGE_URL}/${numberOfArticle}`);
+/**
+ * login
+ */
+const login = () => partial(loginKnowledge, { id: LOGIN_ID, password: LOGIN_PASSWORD });
 
-const getArticleCharacters = (numberOfArticle: string) =>
-  pipe(
-    () => launch({ headless: IS_HEADLESS, slowMo: IS_HEADLESS ? undefined : 50 }),
-    chain((browser) =>
-      pipe(
-        getPage(browser),
-        chain(setViewPort),
-        chain(goToLoginPage),
-        chain(loginKnowledge({ id: LOGIN_ID, password: LOGIN_PASSWORD })),
-        chain(goToArticlePage(numberOfArticle)),
-        chain(getArticleContents),
-        chain(countCharacters),
-        chain((textLength) => of({ browser, textLength })),
+const extractArticleContents = () => extractArticleContentsFromPage;
+
+const getArticleContents = () => (numberOfArticle: number) =>
+  F.pipe(
+    launch(),
+    TaskEither.chain((browser) =>
+      F.pipe(
+        getPageFromBrowser(browser),
+        TaskEither.chain(setViewPort()),
+        TaskEither.chain(goToLoginPage()),
+        TaskEither.chain(login()),
+        TaskEither.chain(goToArticlePage(numberOfArticle)),
+        TaskEither.chain(extractArticleContents()),
+        TaskEither.chain((contents) => TaskEither.of({ numberOfArticle, contents })),
+        Task.chain(shutdown(browser)),
       ),
     ),
-    chain(({ browser, ...rest }) => async () => {
-      await browser.close();
-      return { ...rest, numberOfArticle };
-    }),
   );
 
-const main = pipe(
+const main = F.pipe(
   getArticleNumber(),
-  parse,
-  fold(() => {
-    putStrLn('You did not set an integer in the articleNumber option!');
-    throw new Error('option is not integer!');
-  }, getArticleCharacters),
-  chain(({ textLength, numberOfArticle }) => putStrLn(`#${numberOfArticle} Article has ${textLength} characters.`)),
+  parseArticleNumber(),
+  TaskEither.chain(getArticleContents()),
+  TaskEither.chain(({ contents, numberOfArticle }) => {
+    const length = countArticleCharacters(contents);
+    return TaskEither.of(`#${numberOfArticle} Article has ${length} characters.`);
+  }),
+  TaskEither.fold((err) => Task.of(err.message), Task.of),
+  Task.chain((message) => putStrLn(message)),
 );
 
 main();

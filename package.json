@@ -11,8 +11,7 @@
     "check-type": "tsc --noEmit",
     "test": "jest -c ./jest.config.js",
     "start": "npm run count-article-character",
-    "count-article-character": "ts-node --project tsconfig.scripts.json scripts/countCharacters.ts",
-    "example-scripts": "ts-node --project tsconfig.scripts.json scripts/example.ts"
+    "count-article-character": "ts-node --project tsconfig.scripts.json scripts/countCharacters.ts"
   },
   "husky": {
     "hooks": {
@@ -35,10 +34,12 @@
   "homepage": "https://github.com/50ra4/ts-library-template#readme",
   "dependencies": {
     "date-fns": "2.16.1",
-    "fp-ts": "2.9.5"
+    "fp-ts": "2.9.5",
+    "lodash.partial": "4.2.1"
   },
   "devDependencies": {
     "@types/jest": "26.0.20",
+    "@types/lodash.partial": "4.2.6",
     "@types/node": "14.14.31",
     "@typescript-eslint/eslint-plugin": "4.15.0",
     "@typescript-eslint/parser": "4.15.0",
