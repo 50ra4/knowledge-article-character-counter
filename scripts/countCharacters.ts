@@ -1,15 +1,16 @@
-import { launch, Page } from 'puppeteer';
+import { Browser, launch, Page } from 'puppeteer';
 import { join } from 'path';
 import { Command } from 'commander';
+import { partial } from 'lodash';
 
 import { log } from 'fp-ts/lib/Console';
 import { pipe, flow } from 'fp-ts/lib/function';
 import { fold, none, Option, some } from 'fp-ts/lib/Option';
 import { Task, chain, fromIO, of } from 'fp-ts/lib/Task';
 
-import { BASE_URL, IS_HEADLESS, LOGIN_ID, LOGIN_PASSWORD } from '../src/constants';
+import { BASE_URL, IS_HEADLESS, LOGIN_ID, LOGIN_PASSWORD, SLOW_MOTION_MS } from '../src/constants';
 import { countArticleCharacters } from '../src/browser';
-import { goToUrl, getPage, loginKnowledge, getArticleContents } from '../src/tasks';
+import { goToUrl, getPageFromBrowser, loginKnowledge, extractArticleContentsFromPage } from '../src/tasks';
 
 const getOptions = () =>
   new Command()
@@ -25,12 +26,12 @@ const getArticleNumber = (): string => getOptions()['number'];
 // write to standard output
 const putStrLn: (s: string) => Task<void> = flow(log, fromIO);
 
-const parse = (s: string): Option<string> => {
+const parse = (s: string): Option<number> => {
   const i = +s;
-  return isNaN(i) || i % 1 !== 0 ? none : some(s);
+  return isNaN(i) || i % 1 !== 0 ? none : some(i);
 };
 
-const setViewPort = (page: Page): Task<Page> => async () => {
+const setViewPort: () => (page: Page) => Task<Page> = () => (page) => async () => {
   if (!IS_HEADLESS) {
     await page.setViewport({
       width: 1280,
@@ -40,45 +41,58 @@ const setViewPort = (page: Page): Task<Page> => async () => {
   return page;
 };
 
+const launchBrowser: () => Task<Browser> = () => () => launch({ headless: IS_HEADLESS, slowMo: SLOW_MOTION_MS });
+const closeBrowser: () => <P extends Record<string, unknown>>(
+  params: P & { browser: Browser },
+) => Task<Omit<typeof params, 'browser'>> = () => (params) => async () => {
+  const { browser, ...rest } = params;
+  await browser.close();
+  return rest;
+};
+
 /**
  * go to ${BASE_URL}/list
  */
-const goToLoginPage = goToUrl(join(BASE_URL, 'list'));
+const goToLoginPage = () => partial(goToUrl, join(BASE_URL, 'list'));
 /**
  * go to ${BASE_URL}/view/${numberOfArticle}
  */
-const goToArticlePage = (numberOfArticle: string) => goToUrl(join(BASE_URL, 'view', numberOfArticle));
-const countCharacters = flow(countArticleCharacters, of);
+const goToArticlePage = (numberOfArticle: number) =>
+  partial(goToUrl, join(BASE_URL, 'view', numberOfArticle.toString()));
+/**
+ * login
+ */
+const login = () => partial(loginKnowledge, { id: LOGIN_ID, password: LOGIN_PASSWORD });
 
-const getArticleCharacters = (numberOfArticle: string) =>
+const extractArticleContents = () => extractArticleContentsFromPage;
+
+const getArticleContents = (numberOfArticle: number) =>
   pipe(
-    () => launch({ headless: IS_HEADLESS, slowMo: IS_HEADLESS ? undefined : 50 }),
+    launchBrowser(),
     chain((browser) =>
       pipe(
-        getPage(browser),
-        chain(setViewPort),
-        chain(goToLoginPage),
-        chain(loginKnowledge({ id: LOGIN_ID, password: LOGIN_PASSWORD })),
+        getPageFromBrowser(browser),
+        chain(setViewPort()),
+        chain(goToLoginPage()),
+        chain(login()),
         chain(goToArticlePage(numberOfArticle)),
-        chain(getArticleContents),
-        chain(countCharacters),
-        chain((textLength) => of({ browser, textLength })),
+        chain(extractArticleContents()),
+        chain((contents) => of({ browser, numberOfArticle, contents })),
       ),
     ),
-    chain(({ browser, ...rest }) => async () => {
-      await browser.close();
-      return { ...rest, numberOfArticle };
-    }),
+    chain(closeBrowser()),
   );
 
 const main = pipe(
   getArticleNumber(),
   parse,
   fold(() => {
-    putStrLn('You did not set an integer in the articleNumber option!');
-    throw new Error('option is not integer!');
-  }, getArticleCharacters),
-  chain(({ textLength, numberOfArticle }) => putStrLn(`#${numberOfArticle} Article has ${textLength} characters.`)),
+    throw new Error('You should set an integer in the articleNumber option!');
+  }, getArticleContents),
+  chain(({ contents, numberOfArticle }) => {
+    const length = countArticleCharacters(contents);
+    return putStrLn(`#${numberOfArticle} Article has ${length} characters.`);
+  }),
 );
 
 main();
