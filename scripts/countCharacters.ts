@@ -2,9 +2,9 @@ import { Command } from 'commander';
 import { partial } from 'lodash';
 
 import { log } from 'fp-ts/lib/Console';
-import { pipe, flow } from 'fp-ts/lib/function';
-import { fold, none, Option, some } from 'fp-ts/lib/Option';
-import { Task, chain, fromIO, of } from 'fp-ts/lib/Task';
+import * as F from 'fp-ts/lib/function';
+import * as Option from 'fp-ts/lib/Option';
+import * as Task from 'fp-ts/lib/Task';
 
 import { IS_HEADLESS, LOGIN_ID, LOGIN_PAGE_URL, LOGIN_PASSWORD, SLOW_MOTION_MS, VIEW_PAGE_URL } from '../src/constants';
 import { countArticleCharacters } from '../src/browser';
@@ -30,11 +30,11 @@ const getOptions = () =>
 const getArticleNumber = (): string => getOptions()['number'];
 
 // write to standard output
-const putStrLn: (s: string) => Task<void> = flow(log, fromIO);
+const putStrLn: (s: string) => Task.Task<void> = F.flow(log, Task.fromIO);
 
-const parse = (s: string): Option<number> => {
+const parse = (s: string): Option.Option<number> => {
   const i = +s;
-  return isNaN(i) || i % 1 !== 0 ? none : some(i);
+  return isNaN(i) || i % 1 !== 0 ? Option.none : Option.some(i);
 };
 
 const setViewPort = () =>
@@ -66,29 +66,29 @@ const login = () => partial(loginKnowledge, { id: LOGIN_ID, password: LOGIN_PASS
 const extractArticleContents = () => extractArticleContentsFromPage;
 
 const getArticleContents = (numberOfArticle: number) =>
-  pipe(
+  F.pipe(
     launch(),
-    chain((browser) =>
-      pipe(
+    Task.chain((browser) =>
+      F.pipe(
         getPageFromBrowser(browser),
-        chain(setViewPort()),
-        chain(goToLoginPage()),
-        chain(login()),
-        chain(goToArticlePage(numberOfArticle)),
-        chain(extractArticleContents()),
-        chain((contents) => of({ browser, numberOfArticle, contents })),
+        Task.chain(setViewPort()),
+        Task.chain(goToLoginPage()),
+        Task.chain(login()),
+        Task.chain(goToArticlePage(numberOfArticle)),
+        Task.chain(extractArticleContents()),
+        Task.chain((contents) => Task.of({ browser, numberOfArticle, contents })),
       ),
     ),
-    chain(shutdown()),
+    Task.chain(shutdown()),
   );
 
-const main = pipe(
+const main = F.pipe(
   getArticleNumber(),
   parse,
-  fold(() => {
+  Option.fold(() => {
     throw new Error('You should set an integer in the articleNumber option!');
   }, getArticleContents),
-  chain(({ contents, numberOfArticle }) => {
+  Task.chain(({ contents, numberOfArticle }) => {
     const length = countArticleCharacters(contents);
     return putStrLn(`#${numberOfArticle} Article has ${length} characters.`);
   }),
