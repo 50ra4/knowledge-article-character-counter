@@ -7,17 +7,9 @@ import { pipe, flow } from 'fp-ts/lib/function';
 import { fold, none, Option, some } from 'fp-ts/lib/Option';
 import { Task, chain, fromIO, of } from 'fp-ts/lib/Task';
 
-import {
-  IS_HEADLESS,
-  LOGIN_ID,
-  LOGIN_PASSWORD,
-  BASE_URL,
-  getPage,
-  goToUrl,
-  loginKnowledge,
-  getArticleContents,
-  countArticleCharacters,
-} from '../src';
+import { BASE_URL, IS_HEADLESS, LOGIN_ID, LOGIN_PASSWORD } from '../src/constants';
+import { countArticleCharacters } from '../src/browser';
+import { goToUrl, getPage, loginKnowledge, getArticleContents } from '../src/tasks';
 
 const getOptions = () =>
   new Command()
