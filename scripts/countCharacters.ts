@@ -3,10 +3,20 @@ import { partial } from 'lodash';
 
 import { log } from 'fp-ts/lib/Console';
 import * as F from 'fp-ts/lib/function';
-import * as Option from 'fp-ts/lib/Option';
+import * as IO from 'fp-ts/lib/IO';
 import * as Task from 'fp-ts/lib/Task';
+import * as Either from 'fp-ts/lib/Either';
+import * as TaskEither from 'fp-ts/lib/TaskEither';
 
-import { IS_HEADLESS, LOGIN_ID, LOGIN_PAGE_URL, LOGIN_PASSWORD, SLOW_MOTION_MS, VIEW_PAGE_URL } from '../src/constants';
+import {
+  DEFAULT_VIEW_PORT,
+  IS_HEADLESS,
+  LOGIN_ID,
+  LOGIN_PAGE_URL,
+  LOGIN_PASSWORD,
+  SLOW_MOTION_MS,
+  VIEW_PAGE_URL,
+} from '../src/constants';
 import { countArticleCharacters } from '../src/browser';
 import {
   goToUrl,
@@ -32,20 +42,16 @@ const getArticleNumber = (): string => getOptions()['number'];
 // write to standard output
 const putStrLn: (s: string) => Task.Task<void> = F.flow(log, Task.fromIO);
 
-const parse = (s: string): Option.Option<number> => {
+const parseNumber = (s: string): Either.Either<Error, number> => {
   const i = +s;
-  return isNaN(i) || i % 1 !== 0 ? Option.none : Option.some(i);
+  if (isNaN(i) || i % 1 !== 0) {
+    return Either.left(new Error('You should set an integer in the articleNumber option.'));
+  }
+  return Either.right(i);
 };
 
-const setViewPort = () =>
-  partial(
-    setViewPortToPage,
-    {
-      width: 1280,
-      height: 800,
-    },
-    IS_HEADLESS,
-  );
+const parseArticleNumber = F.flow(parseNumber, TaskEither.fromEither);
+const setViewPort = F.pipe(partial(setViewPortToPage, DEFAULT_VIEW_PORT, IS_HEADLESS), IO.of);
 
 const launch = () => launchBrowser({ headless: IS_HEADLESS, slowMo: SLOW_MOTION_MS });
 const shutdown = () => closeBrowser;
@@ -65,33 +71,33 @@ const login = () => partial(loginKnowledge, { id: LOGIN_ID, password: LOGIN_PASS
 
 const extractArticleContents = () => extractArticleContentsFromPage;
 
-const getArticleContents = (numberOfArticle: number) =>
+const getArticleContents = () => (numberOfArticle: number) =>
   F.pipe(
     launch(),
-    Task.chain((browser) =>
+    TaskEither.chain((browser) =>
       F.pipe(
         getPageFromBrowser(browser),
-        Task.chain(setViewPort()),
-        Task.chain(goToLoginPage()),
-        Task.chain(login()),
-        Task.chain(goToArticlePage(numberOfArticle)),
-        Task.chain(extractArticleContents()),
-        Task.chain((contents) => Task.of({ browser, numberOfArticle, contents })),
+        TaskEither.chain(setViewPort()),
+        TaskEither.chain(goToLoginPage()),
+        TaskEither.chain(login()),
+        TaskEither.chain(goToArticlePage(numberOfArticle)),
+        TaskEither.chain(extractArticleContents()),
+        TaskEither.chain((contents) => TaskEither.of({ browser, numberOfArticle, contents })),
       ),
     ),
-    Task.chain(shutdown()),
+    TaskEither.chain(shutdown()),
   );
 
 const main = F.pipe(
   getArticleNumber(),
-  parse,
-  Option.fold(() => {
-    throw new Error('You should set an integer in the articleNumber option!');
-  }, getArticleContents),
-  Task.chain(({ contents, numberOfArticle }) => {
+  parseArticleNumber,
+  TaskEither.chain(getArticleContents()),
+  TaskEither.chain(({ contents, numberOfArticle }) => {
     const length = countArticleCharacters(contents);
-    return putStrLn(`#${numberOfArticle} Article has ${length} characters.`);
+    return TaskEither.of(`#${numberOfArticle} Article has ${length} characters.`);
   }),
+  TaskEither.fold((err) => Task.of(err.message), Task.of),
+  Task.chain((message) => putStrLn(message)),
 );
 
 main();

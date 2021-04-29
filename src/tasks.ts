@@ -1,5 +1,5 @@
 import { Page, ElementHandle, Browser, Viewport, launch } from 'puppeteer';
-import { Task } from 'fp-ts/lib/Task';
+import { TaskEither, tryCatch } from 'fp-ts/lib/TaskEither';
 
 import { ArticleContent, TagName } from './types';
 import { articleContentHandler } from './browser';
@@ -76,14 +76,18 @@ export const _closeBrowser = async <P extends Record<string, unknown>>(
   return rest;
 };
 
-export const toTask = <P extends unknown[], R>(asyncFn: (...args: P) => Promise<R>): ((...args: P) => Task<R>) => (
-  ...args
-) => () => asyncFn(...args);
+export const toTaskEither = <P extends unknown[], R>(
+  asyncFn: (...args: P) => Promise<R>,
+): ((...args: P) => TaskEither<Error, R>) => (...args) =>
+  tryCatch(
+    () => asyncFn(...args),
+    (e) => e as Error,
+  );
 
-export const getPageFromBrowser = toTask(_getPageFromBrowser);
-export const goToUrl = toTask(_goToUrl);
-export const loginKnowledge = toTask(_loginKnowledge);
-export const extractArticleContentsFromPage = toTask(_extractArticleContentsFromPage);
-export const setViewPortToPage = toTask(_setViewPortToPage);
-export const launchBrowser = toTask(_launchBrowser);
-export const closeBrowser = toTask(_closeBrowser);
+export const getPageFromBrowser = toTaskEither(_getPageFromBrowser);
+export const goToUrl = toTaskEither(_goToUrl);
+export const loginKnowledge = toTaskEither(_loginKnowledge);
+export const extractArticleContentsFromPage = toTaskEither(_extractArticleContentsFromPage);
+export const setViewPortToPage = toTaskEither(_setViewPortToPage);
+export const launchBrowser = toTaskEither(_launchBrowser);
+export const closeBrowser = toTaskEither(_closeBrowser);
