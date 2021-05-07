@@ -72,6 +72,20 @@ export const _closeBrowser = async (browser: Browser): Promise<void> => {
   await browser.close();
 };
 
+export const _showDraftPreview = async (draftArticlePage: Page): Promise<Page> => {
+  const previewTab = await draftArticlePage.waitForXPath('//*[@id="content_main"]/div[1]/div[2]/ul/li[2]/a', {
+    timeout: 3000,
+  });
+  await previewTab?.click();
+
+  // wait for loading has finished
+  const contentElement = await draftArticlePage.waitForSelector('div#content', { timeout: 3000 });
+  if (!contentElement) {
+    throw new Error('show draft preview failed');
+  }
+  return draftArticlePage;
+};
+
 export const toTaskEither = <P extends unknown[], R>(
   asyncFn: (...args: P) => Promise<R>,
 ): ((...args: P) => TaskEither<Error, R>) => (...args) =>
@@ -87,3 +101,4 @@ export const extractArticleContentsFromPage = toTaskEither(_extractArticleConten
 export const setViewPortToPage = toTaskEither(_setViewPortToPage);
 export const launchBrowser = toTaskEither(_launchBrowser);
 export const closeBrowser = toTaskEither(_closeBrowser);
+export const showDraftPreview = toTaskEither(_showDraftPreview);
