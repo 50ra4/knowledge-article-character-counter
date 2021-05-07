@@ -1,7 +1,7 @@
 import { TagName, ArticleContent } from './types';
 
 export const articleContentHandler = (): HTMLElement[] =>
-  Array.from(document.querySelector('#content')?.children ?? []) as HTMLElement[];
+  Array.from(document.querySelector('div#content')?.children ?? []) as HTMLElement[];
 
 const EXCLUDED_TAG_NAMES: ReadonlyArray<TagName> = ['pre'];
 export const shouldIncludeTagName = (tagName: TagName): boolean => !EXCLUDED_TAG_NAMES.includes(tagName);

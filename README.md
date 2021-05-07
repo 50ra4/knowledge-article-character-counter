@@ -25,7 +25,7 @@ $ npm install
 
 3. create `.env` file with reference to [.env.sample](./.env.sample)
 
-e.g.)
+e.g.
 ```
 BASE_URL = https://knowledge.exemple.com // url
 ID = s.igarashi@exemple.com // login id
@@ -42,6 +42,12 @@ $ npm run count-article-character -- -n $TARGET_NUMBER_OR_ARTICLE
 e.g.
 ```bash
 $ npm run count-article-character -- -n 358
+```
+
+Please specify the draft option if you want to count draft article.
+
+```bash
+$ npm run count-article-character -- -n $TARGET_NUMBER_OR_ARTICLE -d
 ```
 
 ## Install

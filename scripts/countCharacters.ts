@@ -11,6 +11,7 @@ import * as TaskEither from 'fp-ts/lib/TaskEither';
 
 import {
   DEFAULT_VIEW_PORT,
+  DRAFT_VIEW_PAGE_URL,
   IS_HEADLESS,
   LOGIN_ID,
   LOGIN_PAGE_URL,
@@ -27,6 +28,7 @@ import {
   setViewPortToPage,
   launchBrowser,
   closeBrowser,
+  showDraftPreview,
 } from '../src/tasks';
 
 const getOptions = () =>
@@ -35,10 +37,16 @@ const getOptions = () =>
       `-n, --number [articleNumber]`, //
       'the number of the article you want to count',
     )
+    .option(
+      `-d, --draft [draftArticleNumber]`, //
+      'if you want to count a draft article',
+      false,
+    )
     .parse(process.argv)
     .opts();
 
 const getArticleNumber = (): string => getOptions()['number'];
+const getIsDraft = (): boolean => !!getOptions()['draft'];
 
 // write to standard output
 const putStrLn: (s: string) => Task.Task<void> = F.flow(log, Task.fromIO);
@@ -64,19 +72,26 @@ const shutdown: (browser: Browser) => <T>(result: Either.Either<Error, T>) => Ta
   );
 
 /**
- * go to ${BASE_URL}/list
+ * go to sign in page
  */
 const goToLoginPage = () => partial(goToUrl, LOGIN_PAGE_URL);
 /**
- * go to ${BASE_URL}/view/${numberOfArticle}
+ * go to article page
  */
 const goToArticlePage = (numberOfArticle: number) => partial(goToUrl, `${VIEW_PAGE_URL}/${numberOfArticle}`);
+/**
+ * go to draft article page
+ */
+const goToDraftArticlePage = (numberOfArticle: number) => partial(goToUrl, `${DRAFT_VIEW_PAGE_URL}/${numberOfArticle}`);
+
 /**
  * login
  */
 const login = () => partial(loginKnowledge, { id: LOGIN_ID, password: LOGIN_PASSWORD });
 
 const extractArticleContents = () => extractArticleContentsFromPage;
+
+const showPreviewArticle = () => showDraftPreview;
 
 const getArticleContents = () => (numberOfArticle: number) =>
   F.pipe(
@@ -95,10 +110,28 @@ const getArticleContents = () => (numberOfArticle: number) =>
     ),
   );
 
+const getDraftArticleContents = () => (numberOfArticle: number) =>
+  F.pipe(
+    launch(),
+    TaskEither.chain((browser) =>
+      F.pipe(
+        getPageFromBrowser(browser),
+        TaskEither.chain(setViewPort()),
+        TaskEither.chain(goToLoginPage()),
+        TaskEither.chain(login()),
+        TaskEither.chain(goToDraftArticlePage(numberOfArticle)),
+        TaskEither.chain(showPreviewArticle()),
+        TaskEither.chain(extractArticleContents()),
+        TaskEither.chain((contents) => TaskEither.of({ numberOfArticle, contents })),
+        Task.chain(shutdown(browser)),
+      ),
+    ),
+  );
+
 const main = F.pipe(
   getArticleNumber(),
   parseArticleNumber(),
-  TaskEither.chain(getArticleContents()),
+  TaskEither.chain(getIsDraft() ? getDraftArticleContents() : getArticleContents()),
   TaskEither.chain(({ contents, numberOfArticle }) => {
     const length = countArticleCharacters(contents);
     return TaskEither.of(`#${numberOfArticle} Article has ${length} characters.`);
