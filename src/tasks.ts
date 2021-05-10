@@ -54,7 +54,7 @@ export const _extractArticleContentsFromPage = async (articlePage: Page): Promis
   return await Promise.all(
     contentChildrenHandlers.map((handler) =>
       handler.evaluate((elm: HTMLElement) => ({
-        tagName: elm.tagName.toLocaleLowerCase() as TagName,
+        tagName: elm.tagName.toLowerCase() as TagName,
         innerText: elm.innerText,
       })),
     ),
