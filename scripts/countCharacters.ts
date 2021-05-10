@@ -38,7 +38,7 @@ const getOptions = () =>
       'the number of the article you want to count',
     )
     .option(
-      `-d, --draft [draftArticleNumber]`, //
+      `-d, --draft`, //
       'if you want to count a draft article',
       false,
     )
