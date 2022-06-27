@@ -7,7 +7,7 @@ This is a console application that counts the number of characters in articles c
 
 ## Requirement
 
-- Install node.js(14.16.0)
+- Install node.js(16.15.1)
 
 ## Usage
 
