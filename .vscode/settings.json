@@ -1,4 +1,7 @@
 {
+  // prettier
+  "editor.formatOnSave": true,
+  // eslint
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true
   },
