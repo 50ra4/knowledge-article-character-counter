@@ -4,12 +4,14 @@
     "experimentalDecorators": true,
     "typeRoots": ["node_modules/@types"],
     "target": "ESNext",
-    "module": "ESNext",
+    "module": "commonjs",
     "moduleResolution": "Node",
     "sourceMap": false,
     "declaration": true,
     "strict": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true
   },
   "include": ["./src", "./test", "./scripts"],
   "exclude": ["node_modules"]

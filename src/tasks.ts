@@ -53,10 +53,12 @@ export const _extractArticleContentsFromPage = async (articlePage: Page): Promis
 
   return await Promise.all(
     contentChildrenHandlers.map((handler) =>
-      handler.evaluate((elm: HTMLElement) => ({
-        tagName: elm.tagName.toLowerCase() as TagName,
-        innerText: elm.innerText,
-      })),
+      handler.evaluate(
+        (elm: Element): ArticleContent => ({
+          tagName: elm.tagName.toLowerCase() as TagName,
+          innerText: (elm as HTMLElement).innerText,
+        }),
+      ),
     ),
   );
 };
@@ -79,20 +81,22 @@ export const _showDraftPreview = async (draftArticlePage: Page): Promise<Page> =
   await previewTab?.click();
 
   // wait for loading has finished
-  const contentElement = await draftArticlePage.waitForSelector('div#content', { timeout: 3000 });
+  const contentElement = await draftArticlePage.waitForSelector('div#content', {
+    timeout: 3000,
+  });
   if (!contentElement) {
     throw new Error('show draft preview failed');
   }
   return draftArticlePage;
 };
 
-export const toTaskEither = <P extends unknown[], R>(
-  asyncFn: (...args: P) => Promise<R>,
-): ((...args: P) => TaskEither<Error, R>) => (...args) =>
-  tryCatch(
-    () => asyncFn(...args),
-    (e) => e as Error,
-  );
+export const toTaskEither =
+  <P extends unknown[], R>(asyncFn: (...args: P) => Promise<R>): ((...args: P) => TaskEither<Error, R>) =>
+  (...args) =>
+    tryCatch(
+      () => asyncFn(...args),
+      (e) => e as Error,
+    );
 
 export const getPageFromBrowser = toTaskEither(_getPageFromBrowser);
 export const goToUrl = toTaskEither(_goToUrl);
