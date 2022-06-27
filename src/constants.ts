@@ -15,3 +15,4 @@ export const DEFAULT_VIEW_PORT: Readonly<Viewport> = {
   width: 1280,
   height: 800,
 };
+export const EXECUTABLE_PATH = process.env.EXECUTABLE_PATH || '';
